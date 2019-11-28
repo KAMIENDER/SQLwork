@@ -6,6 +6,7 @@ import (
 	"github.com/astaxie/beego/orm"
 
 	"github.com/astaxie/beego"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // 基本的文件目录结构：routers声明匹配的访问路径（url）
