@@ -1,9 +1,8 @@
 package Models
 
 import (
-	db "database/sql"
-
-	tsgutils "github.com/timespacegroup/go-utils"
+	// "fmt"
+	"github.com/astaxie/beego/orm"
 )
 
 /*
@@ -15,7 +14,7 @@ type User struct {
 	Password string `column:"password"` //
 	State    int64  `column:"state"`    //
 	Token    string `column:"token"`    //
-	Users    []User // This value is used for batch queries and inserts.
+	// Users    []User // This value is used for batch queries and inserts.
 }
 
 /*
@@ -215,7 +214,7 @@ type Goods struct {
 	Price    float64 `column:"price"`    //
 	Quantity int64   `column:"quantity"` //
 	Userid   int64   `column:"userid"`   //
-	Goodss   []Goods // This value is used for batch queries and inserts.
+	// Goodss   []Goods // This value is used for batch queries and inserts.
 }
 
 /*
@@ -414,14 +413,15 @@ func (goods *Goods) BatchInsert(client *DBClient, idSet, returnIds bool) ([]int6
 
  */
 type Communications struct {
-	Email           string           `column:"email"`   //
-	Id              int64            `column:"id"`      //
-	Phone           string           `column:"phone"`   //
-	Userid          int64            `column:"userid"`  //
-	Weichat         string           `column:"weichat"` //
-	Communicationss []Communications // This value is used for batch queries and inserts.
+	Email   string `column:"email"`   //
+	Id      int64  `column:"id"`      //
+	Phone   string `column:"phone"`   //
+	Userid  int64  `column:"userid"`  //
+	Weichat string `column:"weichat"` //
+	// Communicationss []Communications // This value is used for batch queries and inserts.
 }
 
+/*
 func (communications *Communications) RowToStruct(row *db.Row) error {
 	builder := tsgutils.NewInterfaceBuilder()
 	builder.Append(&communications.Email)
@@ -434,7 +434,7 @@ func (communications *Communications) RowToStruct(row *db.Row) error {
 		return err
 	}
 	return nil
-}
+}*/
 
 /*
 func (communications *Communications) RowsToStruct(rows *db.Rows) error {
@@ -615,10 +615,10 @@ func (communications *Communications) BatchInsert(client *DBClient, idSet, retur
 
  */
 type Label struct {
-	Goodsid int64   `column:"goodsid"` //
-	Id      int64   `column:"id"`      //
-	Kind    string  `column:"kind"`    //
-	Labels  []Label // This value is used for batch queries and inserts.
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`      //
+	Kind    string `column:"kind"`    //
+	// Labels  []Label // This value is used for batch queries and inserts.
 }
 
 /*
@@ -810,11 +810,11 @@ func (label *Label) BatchInsert(client *DBClient, idSet, returnIds bool) ([]int6
 
  */
 type Messages struct {
-	Contain   string     `column:"contain"` //
-	Fromid    int64      `column:"fromid"`  //
-	Id        int64      `column:"id"`      //
-	Toid      int64      `column:"toid"`    //
-	Messagess []Messages // This value is used for batch queries and inserts.
+	Contain string `column:"contain"` //
+	Fromid  int64  `column:"fromid"`  //
+	Id      int64  `column:"id"`      //
+	Toid    int64  `column:"toid"`    //
+	// Messagess []Messages // This value is used for batch queries and inserts.
 }
 
 /*
@@ -1005,3 +1005,11 @@ func (messages *Messages) BatchInsert(client *DBClient, idSet, returnIds bool) (
 }
 */
 // The generated tabs:  user goods communications label messages
+
+func init() {
+	orm.RegisterModel(new(User))
+	orm.RegisterModel(new(Goods))
+	orm.RegisterModel(new(Label))
+	orm.RegisterModel(new(Communications))
+	orm.RegisterModel(new(Messages))
+}
