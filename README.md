@@ -6,5 +6,5 @@
 2、需要merge的时候说一声即可
 
 ## 数据库
-我上传了一个sql文件，需要安装navicat和mysql，导如何入见给出的链接：
+我上传了一个sql文件，需要安装navicat和mysql，如何导入使用见给出的链接：
 https://yq.aliyun.com/articles/399797
