@@ -14,6 +14,7 @@ type User struct {
 	Password string `column:"password"` //
 	State    int64  `column:"state"`    //
 	Token    string `column:"token"`    //
+	ActiveId string `column:"activeid"`
 	// Users    []User // This value is used for batch queries and inserts.
 }
 
@@ -417,7 +418,7 @@ type Communications struct {
 	Id      int64  `column:"id"`      //
 	Phone   string `column:"phone"`   //
 	Userid  int64  `column:"userid"`  //
-	Weichat string `column:"weichat"` //
+	Wechat string `column:"wechat"` //
 	// Communicationss []Communications // This value is used for batch queries and inserts.
 }
 
