@@ -82,6 +82,10 @@ func SendMail(to,ActiveSeq string) error {
 	return err
 }
 
+func (this *RegisterController) Get() {
+	this.ServeJSON()
+}
+
 func (this *RegisterController) Register(){
 	/*********************************************
 	用户注册函数：
