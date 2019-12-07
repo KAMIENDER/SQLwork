@@ -244,8 +244,7 @@ func (this *LoginController) Login(){
 		this.ServeJSON()
 		return
 	}
-	UserState:=user.State
-	if UserState==0 {
+	if user.State==0 {
 		JsonResponse["status"]=status
 		JsonResponse["msg"]="用户未激活"
 		this.Data["json"]=JsonResponse
@@ -264,7 +263,6 @@ func (this *LoginController) Login(){
 	}
 	//签发token，设置用户状态为登录状态
 	msg=GenerateToken(username)	//msg存的是token
-	status=1
 	this.SetSession(username,msg)
 	JsonResponse["status"]=status
 	JsonResponse["msg"]=msg
