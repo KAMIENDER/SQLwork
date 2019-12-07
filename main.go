@@ -6,6 +6,9 @@ import (
 	"github.com/astaxie/beego/orm"
 
 	"github.com/astaxie/beego"
+
+	_ "github.com/go-sql-driver/mysql"
+
 )
 
 // 基本的文件目录结构：routers声明匹配的访问路径（url）
@@ -16,7 +19,8 @@ import (
 func init() {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 	// @/ 后面跟的是数据库名
-	orm.RegisterDataBase("default", "mysql", "root:root@/sql_test?charset=utf8")
+	orm.RegisterDataBase("default", "mysql", "root:root@tcp(112.125.88.184:3306)/sql_test?charset=utf8")
+	//orm.RunSyncdb("default",true,false)
 }
 func main() {
 	beego.Run()
