@@ -268,7 +268,7 @@ func (this *LoginController) Login(){
 	//签发token，设置用户状态为登录状态
 	msg=GenerateToken(username)	//msg存的是token
 	this.SetSession(username,msg)
-	JsonResponse["status"]=status
+	JsonResponse["status"]=1
 	JsonResponse["msg"]=msg
 	this.Data["json"]=JsonResponse
 	this.ServeJSON()
