@@ -414,11 +414,12 @@ func (goods *Goods) BatchInsert(client *DBClient, idSet, returnIds bool) ([]int6
 
  */
 type Communications struct {
-	Email   string `column:"email"`   //
 	Id      int64  `column:"id"`      //
+	Email   string `column:"email"`   //
 	Phone   string `column:"phone"`   //
 	Userid  int64  `column:"userid"`  //
-	Weichat string `column:"weichat"` //
+	Wechat string `column:"wechat"` //
+	Activeid string `column:"activeid"`
 	// Communicationss []Communications // This value is used for batch queries and inserts.
 }
 
