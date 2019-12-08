@@ -208,6 +208,7 @@ func (user *User) BatchInsert(client *DBClient, idSet, returnIds bool) ([]int64,
 */
 
 type Goods struct {
+	Name string `column:"name"`
 	Describe string  `column:"describe"` //
 	Id       int64   `column:"id"`       //
 	Photo    string  `column:"photo"`    //
