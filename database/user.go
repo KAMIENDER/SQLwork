@@ -351,19 +351,21 @@ func (this *UserInfoController) Get() {
 	JsonResponse:=make(map[string]interface{})
 	JsonResponse["username"]=username
 	user:=models.User{Name:username}
-	orm:=orm.NewOrm()
-	orm.Read(&user,"Name")
+	OrmQuery:=orm.NewOrm()
+	OrmQuery.Read(&user,"Name")
 	userid:=user.Id
-	GoodsTable:=orm.QueryTable("goods")
+	GoodsTable:=OrmQuery.QueryTable("goods")
 	var goods=[]*models.Goods{}
 	n,err:=GoodsTable.Filter("userid",userid).All(&goods)
-	GoodsResponse:=make(map[string]string)
 	if err==nil && n>0 {
+		var GoodsResponse []map[string]string
 		for i:=0;i<len(goods);i++ {
 			GoodName:=goods[i].Name
 			GoodId:=goods[i].Id
 			EditUrl:="127.0.0.1/edit/"+username+"/"+strconv.FormatInt(GoodId,10)	//10进制形式转为GoodId
-			GoodsResponse[GoodName]=EditUrl
+			good:=make(map[string]string)
+			good[GoodName]=EditUrl
+			GoodsResponse=append(GoodsResponse,good)
 		}
 		JsonResponse["goods"]=GoodsResponse
 	} else {
@@ -521,13 +523,4 @@ var RestfulHandler=func(ctx *context.Context) {
 		ctx.Request.Method=RequestMethod
 	}
 	beego.Info(RequestMethod)
-}
-
-func init() {
-	//设置过滤函数
-	beego.InsertFilter("*",beego.BeforeRouter,RestfulHandler)
-	beego.InsertFilter("/test",beego.BeforeRouter,Authenticate)
-	beego.InsertFilter("/logout",beego.BeforeRouter,Authenticate)
-	beego.InsertFilter("/userinfo",beego.BeforeRouter,Authenticate)
-	beego.InsertFilter("/edit/:username[\\w]+/?:id",beego.BeforeRouter,Authenticate)
 }

@@ -27,4 +27,16 @@ func init() {
 	
 	//编辑商品信息
 	beego.Router("/edit/:username[\\w]+/?:id",&database.EditController{})
+
+
+	//设置过滤函数
+	beego.InsertFilter("*",beego.BeforeRouter,database.RestfulHandler)
+	beego.InsertFilter("/test",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/logout",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/userinfo",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/goodget",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/goodlabelget",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/postgoods",beego.BeforeRouter,database.Authenticate)
+	beego.InsertFilter("/edit/:username[\\w]+/?:id",beego.BeforeRouter,database.Authenticate)
+
 }
