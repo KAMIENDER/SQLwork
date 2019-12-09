@@ -26,6 +26,14 @@ type LogoutController struct {
 	beego.Controller
 }
 
+type UserInfoController struct {
+	beego.Controller
+}
+
+type EditController struct {
+	beego.Controller
+}
+
 type TestController struct {
 	beego.Controller
 }
@@ -290,11 +298,14 @@ var Authenticate=func(ctx *context.Context) {
 	}
 	username:=stringBuilder.String()
 	SaveToken,err:=ctx.Input.Session(username).(string)
-	beego.Info(SaveToken)
 	if err==false || token!=SaveToken {
 		response:=make(map[string]interface{})
 		response["status"]=0
-		response["msg"]="token认证失效"
+		if err==false {
+			response["msg"]="token认证失效"
+		} else {
+			response["msg"]="token不一致"
+		}
 		ctx.Output.JSON(response,true,true)
 		return
 	}
@@ -326,8 +337,131 @@ func (this *LogoutController) Logout() {
 	this.ServeJSON()
 }
 
+func (this *UserInfoController) Get() {
+	/****************************************
+	获取用户个人信息的函数：
+	前端传入值：无
+	返回值：
+	1、用户名username
+	2、商品列表goods：包括商品名，商品图片(路径)，商品编辑超链接
+	若用户无商品，则goods返回的是空字符串
+	****************************************/
+	beego.Info("UserInfo")
+	username:=this.Ctx.Input.GetData("user").(string)
+	JsonResponse:=make(map[string]interface{})
+	JsonResponse["username"]=username
+	user:=models.User{Name:username}
+	orm:=orm.NewOrm()
+	orm.Read(&user,"Name")
+	userid:=user.Id
+	GoodsTable:=orm.QueryTable("goods")
+	var goods=[]*models.Goods{}
+	n,err:=GoodsTable.Filter("userid",userid).All(&goods)
+	GoodsResponse:=make(map[string]string)
+	if err==nil && n>0 {
+		for i:=0;i<len(goods);i++ {
+			GoodName:=goods[i].Name
+			//PhotoPath:=goods[i].Photo
+			GoodId:=goods[i].Id
+			EditUrl:="127.0.0.1/edit/"+username+"/"+strconv.FormatInt(GoodId,10)	//10进制形式转为GoodId
+			GoodsResponse[GoodName]=EditUrl
+		}
+		JsonResponse["goods"]=GoodsResponse
+	} else {
+		JsonResponse["goods"]=""	//无商品
+	}
+	this.Data["json"]=JsonResponse
+	this.ServeJSON()
+}
+
+func (this *EditController) Get() {
+	/*****************************************************
+	获取指定商品信息的函数
+	前端传入值：无 （直接点击超链接访问的）
+	返回值：
+	1、status：status=0表示没有该商品，不返回下面其他数据；status=1表示商品存在
+	2、name：商品名称
+	3、price：商品价格
+	4、describe：商品描述
+	5、photo：商品照片路径
+	6、quantity：商品数量
+	*****************************************************/
+	beego.Info("EditGet")
+	goodid:=this.Ctx.Input.Param(":id")
+	id,_:= strconv.ParseInt(goodid,10,64)
+	JsonResponse:=make(map[string]interface{})
+	good:=models.Goods{Id:id}
+	orm:=orm.NewOrm()
+	err:=orm.Read(&good)
+	if err!=nil {		//无该商品
+		JsonResponse["status"]=0
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+	JsonResponse["name"]=good.Name
+	JsonResponse["price"]=good.Price
+	JsonResponse["describe"]=good.Describe
+	JsonResponse["photo"]=good.Photo
+	JsonResponse["quantity"]=good.Quantity
+	this.Data["json"]=JsonResponse
+	this.ServeJSON()
+}
+
+func (this *EditController) Post() {
+	/**********************************************
+	修改指定商品信息的函数
+	前端传入值:
+	1、name：商品名称
+	2、price：商品价格
+	3、describe：商品描述
+	4、photo：商品照片路径
+	5、quantity：商品数量
+	返回值：
+	1、status：0表示编辑失败，1表示编辑成功
+	2、msg：失败或者成功的信息
+	**********************************************/
+	goodid:=this.Ctx.Input.Param(":id")
+	id,_:= strconv.ParseInt(goodid,10,64)
+	name:=this.GetString("name")
+	goodprice:=this.GetString("price")
+	price,_:= strconv.ParseFloat(goodprice,64)
+	describe:=this.GetString("describe")
+	photo:=this.GetString("photo")
+	goodquantity:=this.GetString("quantity")
+	quantity,_:= strconv.ParseInt(goodquantity,10,64)
+	JsonResponse:=make(map[string]interface{})
+	JsonResponse["status"]=0
+	orm:=orm.NewOrm()
+	good:=models.Goods{Id:id}
+	err:=orm.Read(&good)
+	if err!=nil {
+		JsonResponse["msg"]="商品不存在"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return
+	}
+	//更新商品信息
+	good.Name=name
+	good.Price=price
+	good.Describe=describe
+	good.Photo=photo
+	good.Quantity=quantity
+	_,err=orm.Update(&good)
+	if err!=nil {
+		JsonResponse["msg"]="商品不存在"
+	} else {
+		JsonResponse["msg"]="商品更新成功"
+	}
+	this.Data["json"]=JsonResponse
+	this.ServeJSON()
+}
+
+
 func init() {
 	//设置过滤函数
 	beego.InsertFilter("/test",beego.BeforeRouter,Authenticate)
 	beego.InsertFilter("/logout",beego.BeforeRouter,Authenticate)
+	beego.InsertFilter("/userinfo",beego.BeforeRouter,Authenticate)
+	beego.InsertFilter("/edit/:username[\\w]+/?:id",beego.BeforeRouter,Authenticate)
 }
