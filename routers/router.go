@@ -18,4 +18,7 @@ func init() {
 	beego.Router("/login", &database.LoginController{},"get:Get;post:Login")
 	beego.Router("/logout",&database.LogoutController{},"get:Logout")
 	beego.Router("/active/?:id", &database.RegisterController{},"get:Active")
+	beego.Router("/userinfo",&database.UserInfoController{})
+	//编辑商品信息
+	beego.Router("/edit/:username[\\w]+/?:id",&database.EditController{})
 }

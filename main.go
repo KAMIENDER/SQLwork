@@ -23,5 +23,7 @@ func init() {
 	//orm.RunSyncdb("default",true,false)
 }
 func main() {
+	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime=3600
+	beego.BConfig.WebConfig.Session.SessionCookieLifeTime=3600
 	beego.Run()
 }
