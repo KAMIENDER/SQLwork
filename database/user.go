@@ -361,7 +361,6 @@ func (this *UserInfoController) Get() {
 	if err==nil && n>0 {
 		for i:=0;i<len(goods);i++ {
 			GoodName:=goods[i].Name
-			//PhotoPath:=goods[i].Photo
 			GoodId:=goods[i].Id
 			EditUrl:="127.0.0.1/edit/"+username+"/"+strconv.FormatInt(GoodId,10)	//10进制形式转为GoodId
 			GoodsResponse[GoodName]=EditUrl
@@ -457,9 +456,76 @@ func (this *EditController) Post() {
 	this.ServeJSON()
 }
 
+func (this *EditController) Delete() {
+	/************************************************
+	用于删除商品的函数
+	前端传入：无
+	后端返回：
+	1、status:0/1 0表示删除失败 1表示删除成功
+	2、msg：表示失败或成功的消息
+	************************************************/
+	beego.Info("delete")
+	goodid:=this.Ctx.Input.Param(":id")
+	id,_:= strconv.ParseInt(goodid,10,64)
+	JsonResponse:=make(map[string]interface{})
+	orm:=orm.NewOrm()
+	good:=models.Goods{Id:id}
+	err:=orm.Read(&good)
+	if err!=nil {
+		JsonResponse["status"]=0
+		JsonResponse["msg"]="该商品不存在"
+	} else {
+		_,err=orm.Delete(&good)
+		if err!=nil {
+			JsonResponse["status"]=0
+			JsonResponse["msg"]="商品删除失败"
+		} else {
+			JsonResponse["status"]=1
+			JsonResponse["msg"]="商品删除成功"
+		}
+	}
+	this.Data["json"]=JsonResponse
+	this.ServeJSON()
+}
+
+var RestfulHandler=func(ctx *context.Context) {
+	/*********************************************
+	处理前端请求方法的过滤器，使得beego的路由可以匹配到
+	除PUT和POST之外的方法
+	前端传入：前端需要以POST方法发起请求，但是携带一个
+	"_method"的表单字段表明实际的操作，如：
+	"_method":"DELETE"
+	后端返回：
+	1、status：0表示_method表示的方法是非法的方法
+	当_method表示的方法是正常方法时不返回status
+	*********************************************/
+	RequestMethod:=ctx.Input.Query("_method")
+	if RequestMethod=="" {	//正常请求 PUT或者POST
+		RequestMethod=ctx.Input.Method()
+	}
+	var SupportMethod=[6]string{"GET","POST","PUT","PATCH","DELETE","OPTIONS"}
+	IsSupport:=false
+	for _,method:=range SupportMethod {
+		if method==RequestMethod {
+			IsSupport=true
+			break
+		}
+	}
+	if IsSupport==false {	//不是本应用支持的请求方法
+		ctx.ResponseWriter.WriteHeader(405)
+		response:=make(map[string]int)
+		response["status"]=0
+		ctx.Output.JSON(response,true,true) 
+	} else {
+		//伪造请求方法
+		ctx.Request.Method=RequestMethod
+	}
+	beego.Info(RequestMethod)
+}
 
 func init() {
 	//设置过滤函数
+	beego.InsertFilter("*",beego.BeforeRouter,RestfulHandler)
 	beego.InsertFilter("/test",beego.BeforeRouter,Authenticate)
 	beego.InsertFilter("/logout",beego.BeforeRouter,Authenticate)
 	beego.InsertFilter("/userinfo",beego.BeforeRouter,Authenticate)
