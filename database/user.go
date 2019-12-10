@@ -85,7 +85,7 @@ func SendMail(to,ActiveSeq string) error {
 	email.To=[]string{to}
 	email.From="986439206@qq.com"
 	email.Subject="校内咸鱼激活邮件"
-	email.HTML="请点击该链接进行激活：http://127.0.0.1:8090/active/"+ActiveSeq
+	email.HTML="请点击该链接进行激活：http://112.125.88.184:8090/active/"+ActiveSeq
 	err:=email.Send()
 	return err
 }
