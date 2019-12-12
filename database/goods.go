@@ -65,13 +65,15 @@ func (this *GetLabelGoodsController) GetLabelGoods() {
 
 	var out []models.Goods
 	t := 0
-	for _, id := range tarlabel {
+	for _,kind := range tarlabel {
+		beego.Info(kind.Kind)
 		if t >= num {
 			break
 		}
 		t = t + 1
-		var temp models.Goods
-		o.QueryTable("goods").Filter("id", id).One(&temp)
+		temp:=models.Goods{}
+		o.QueryTable("goods").Filter("id", kind.Goodsid).One(&temp)
+		beego.Info(temp.Name)
 		out = append(out, temp)
 	}
 
@@ -87,24 +89,31 @@ func (this *PostGoodsController) PostGoods() {
 	1、price价格 int
 	2、describe商品描述 string
 	3、photo图片文件 file
-	4、userid用户id int
-	5、quantity数量 int
-	6、name名称 string
+	4、quantity数量 int
+	5、name名称 string
+	6、label商品标签 string 
 	返回给前端的数据：用JsonResponse封装
 	1、status是否注册成功———— 0：失败，1：成功
 	2、若注册失败的说明信息，成功返回ok
 	*********************************************/
+	JsonResponse:=make(map[string]interface{})
+	userid:=this.Ctx.Input.GetData("user").(int64)
 	price, _ := this.GetFloat("price")
 	describe := this.GetString("describe")
-	photo, _, _ := this.GetFile("photo")
+	photo,_,err := this.GetFile("photo")
+	if err!=nil {
+		JsonResponse["status"] = 0
+		JsonResponse["msg"] = "图片上传失败"
+		this.Data["json"] = JsonResponse
+		this.ServeJSON()
+		return
+	}
 	defer photo.Close()
-	userid, _ := this.GetInt("userid")
 	quantity, _ := this.GetInt("quantity")
 	name := this.GetString("name")
-
+	label := this.GetString("label")
 	status := 0
 	var msg string
-	JsonResponse := make(map[string]interface{})
 
 	var toinsert models.Goods
 
@@ -134,6 +143,9 @@ func (this *PostGoodsController) PostGoods() {
 	toinsert.Photo = path.Join("static/photo", filename)
 	this.SaveToFile("photo", toinsert.Photo)
 	o.Update(&toinsert)
+
+	GoodLabel:=models.Label{Kind:label,Goodsid:idd}
+	o.Insert(&GoodLabel)
 
 	JsonResponse["status"] = 1
 	JsonResponse["msg"] = "ok"
