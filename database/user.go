@@ -12,6 +12,9 @@ import (
 	"time"
 	"encoding/hex"
 	"bytes"
+	"regexp"
+	"path"
+	"os"
 )
 
 type RegisterController struct {
@@ -37,6 +40,18 @@ type EditController struct {
 type TestController struct {
 	beego.Controller
 }
+
+
+var (
+	//NmaeFormat=regexp.MustCompile(`^(\w+)$`)
+	PasswordFormat=regexp.MustCompile(`^[A-Za-z0-9]+$`)
+	// \w 匹配 A-Z 或 a-z 或 0-9
+	//\w+ 匹配1个或多个; ()表示将表达式分组; ?表示匹配0次或1次 
+	//{m,n}表示匹配前一个字符或分组m至n次
+	//^表示匹配字符串开头   $表示匹配字符串结尾
+	EmailFormat=regexp.MustCompile(`^(\w+)?(\.\w+)?@(\w+)?\.(\w{2,5})(\.\w{2,3})?$`)
+	PhoneFormat=regexp.MustCompile(`^(1[356789]\d)(\d{4})(\d{4})$`)
+)
 
 // type AuthController struct {	//认证相关的控制器
 // 	beego.Controller
@@ -115,6 +130,51 @@ func (this *RegisterController) Register(){
 	status:=0
 	var msg string 
 	JsonResponse:=make(map[string]interface{})
+
+	//检查输入的格式
+
+	if len(username)>20 || len(password)>16 {
+		JsonResponse["msg"]="用户名或密码过长"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+	
+	// if NmaeFormat.MatchString(username)==false {
+	// 	JsonResponse["msg"]="用户名格式错误"
+	// 	this.Data["json"]=JsonResponse
+	// 	this.ServeJSON()
+	// 	return 
+	// }
+
+	if PasswordFormat.MatchString(password)==false {
+		JsonResponse["msg"]="密码格式错误"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
+	if EmailFormat.MatchString(email)==false {
+		JsonResponse["msg"]="邮箱格式错误"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
+	if PhoneFormat.MatchString(wechat)==false {
+		JsonResponse["msg"]="微信号格式错误"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
+	if PhoneFormat.MatchString(phone)==false {
+		JsonResponse["msg"]="手机号码格式错误"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
 	//查询用户名、邮箱、手机是否已注册 是的话就不能再注册
 	orm:=orm.NewOrm()
 	newuser:=models.User{Name:username}
@@ -168,7 +228,7 @@ func (this *RegisterController) Register(){
 				beego.Error("邮件发送失败",res)
 				msg="邮件发送失败"
 			} else {
-				msg="发送成功"
+				msg="邮件发送成功"
 				status=1
 			}
 		} else {
@@ -216,13 +276,14 @@ func (this *RegisterController) Active() {
 	this.Ctx.WriteString("激活成功")
 }
 
-func GenerateToken(username string) string {
+func GenerateToken(userid int64) string {
 	/*********************************************************
 	生成token的函数：token的形式为 用户名.加密字符串
 	*********************************************************/
+	id:=strconv.FormatInt(userid,10)
 	seq:=GenereteActiveSeq()
-	token:=Encrypt(username+seq)
-	token=username+"."+token
+	token:=Encrypt(id+seq)
+	token=id+"."+token
 	return token
 }
 
@@ -246,6 +307,28 @@ func (this *LoginController) Login(){
 	status:=0
 	var msg string
 	JsonResponse:=make(map[string]interface{})
+	//检查输入的格式
+	if len(username)>20 || len(password)>16 {
+		JsonResponse["msg"]="用户名或密码过长"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
+	// if NmaeFormat.MatchString(username)==false {
+	// 	JsonResponse["msg"]="用户名格式错误"
+	// 	this.Data["json"]=JsonResponse
+	// 	this.ServeJSON()
+	// 	return 
+	// }
+
+	if PasswordFormat.MatchString(password)==false {
+		JsonResponse["msg"]="密码格式错误"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+
 	orm:=orm.NewOrm()
 	user:=models.User{Name:username}
 	err:=orm.Read(&user,"Name")
@@ -264,8 +347,6 @@ func (this *LoginController) Login(){
 		return
 	}
 	password=Encrypt(password)
-	beego.Info(password)
-	beego.Info(user.Password)
 	if password!=user.Password {
 		JsonResponse["status"]=status
 		JsonResponse["msg"]="密码不正确"
@@ -274,8 +355,9 @@ func (this *LoginController) Login(){
 		return
 	}
 	//签发token，设置用户状态为登录状态
-	msg=GenerateToken(username)	//msg存的是token
-	this.SetSession(username,msg)
+	msg=GenerateToken(user.Id)	//msg存的是token
+	beego.Info(msg)
+	this.SetSession(user.Id,msg)
 	JsonResponse["status"]=1
 	JsonResponse["msg"]=msg
 	this.Data["json"]=JsonResponse
@@ -296,8 +378,9 @@ var Authenticate=func(ctx *context.Context) {
 			stringBuilder.WriteByte(token[i])
 		}
 	}
-	username:=stringBuilder.String()
-	SaveToken,err:=ctx.Input.Session(username).(string)
+	userid:=stringBuilder.String()
+	user,_:= strconv.ParseInt(userid, 10, 64)
+	SaveToken,err:=ctx.Input.Session(user).(string)
 	if err==false || token!=SaveToken {
 		response:=make(map[string]interface{})
 		response["status"]=0
@@ -310,26 +393,27 @@ var Authenticate=func(ctx *context.Context) {
 		return
 	}
 	//修改请求体的信息 向控制器传递新信息
-	ctx.Input.SetData("user",username)
+	ctx.Input.SetData("user",user)
 }
 
 func (this *TestController) Get() {
-	username:=this.Ctx.Input.GetData("user").(string)
-	this.Ctx.WriteString(username)
+	userid:=this.Ctx.Input.GetData("user").(int64)
+	user:=strconv.FormatInt(userid,10)
+	this.Ctx.WriteString(user)
 }
 
 func (this *LogoutController) Logout() {
 	/*******************************************
 	用户注销函数：删除用户对应的session
 	*******************************************/
-	username:=this.Ctx.Input.GetData("user").(string)
-	_,Nothing:=this.GetSession(username).(string)
+	userid:=this.Ctx.Input.GetData("user").(int64)
+	_,err:=this.GetSession(userid).(string)
 	JsonResponse:=make(map[string]interface{})
-	if Nothing==false {
+	if err==false {
 		JsonResponse["status"]=0
 		JsonResponse["msg"]="用户未登录"
 	} else {
-		this.DelSession(username)
+		this.DelSession(userid)
 		JsonResponse["status"]=1
 		JsonResponse["msg"]="注销成功"
 	}
@@ -347,13 +431,12 @@ func (this *UserInfoController) Get() {
 	若用户无商品，则goods返回的是空字符串
 	****************************************/
 	beego.Info("UserInfo")
-	username:=this.Ctx.Input.GetData("user").(string)
+	userid:=this.Ctx.Input.GetData("user").(int64)
 	JsonResponse:=make(map[string]interface{})
-	JsonResponse["username"]=username
-	user:=models.User{Name:username}
+	user:=models.User{Id:userid}
 	OrmQuery:=orm.NewOrm()
-	OrmQuery.Read(&user,"Name")
-	userid:=user.Id
+	OrmQuery.Read(&user)
+	JsonResponse["username"]=user.Name
 	GoodsTable:=OrmQuery.QueryTable("goods")
 	var goods=[]*models.Goods{}
 	n,err:=GoodsTable.Filter("userid",userid).All(&goods)
@@ -362,7 +445,8 @@ func (this *UserInfoController) Get() {
 		for i:=0;i<len(goods);i++ {
 			GoodName:=goods[i].Name
 			GoodId:=goods[i].Id
-			EditUrl:="127.0.0.1/edit/"+username+"/"+strconv.FormatInt(GoodId,10)	//10进制形式转为GoodId
+			//112.125.88.184
+			EditUrl:="112.125.88.184:8090/edit/"+user.Name+"/"+strconv.FormatInt(GoodId,10)	//10进制形式转为GoodId
 			good:=make(map[string]string)
 			good[GoodName]=EditUrl
 			GoodsResponse=append(GoodsResponse,good)
@@ -380,26 +464,32 @@ func (this *EditController) Get() {
 	获取指定商品信息的函数
 	前端传入值：无 （直接点击超链接访问的）
 	返回值：
-	1、status：status=0表示没有该商品，不返回下面其他数据；status=1表示商品存在
+	1、status：status=0表示没有该商品或当前用户没有修改权限，不返回下面其他数据；status=1表示商品存在
 	2、name：商品名称
 	3、price：商品价格
 	4、describe：商品描述
 	5、photo：商品照片路径
 	6、quantity：商品数量
 	*****************************************************/
-	beego.Info("EditGet")
+	userid:=this.Ctx.Input.GetData("user").(int64)
 	goodid:=this.Ctx.Input.Param(":id")
 	id,_:= strconv.ParseInt(goodid,10,64)
 	JsonResponse:=make(map[string]interface{})
+	JsonResponse["status"]=0
 	good:=models.Goods{Id:id}
 	orm:=orm.NewOrm()
 	err:=orm.Read(&good)
 	if err!=nil {		//无该商品
-		JsonResponse["status"]=0
 		this.Data["json"]=JsonResponse
 		this.ServeJSON()
 		return 
 	}
+	if good.Userid!=userid {
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+	JsonResponse["status"]=1
 	JsonResponse["name"]=good.Name
 	JsonResponse["price"]=good.Price
 	JsonResponse["describe"]=good.Describe
@@ -422,37 +512,68 @@ func (this *EditController) Post() {
 	1、status：0表示编辑失败，1表示编辑成功
 	2、msg：失败或者成功的信息
 	**********************************************/
+	JsonResponse:=make(map[string]interface{})
+	JsonResponse["status"]=0
+	userid:=this.Ctx.Input.GetData("user").(int64)
 	goodid:=this.Ctx.Input.Param(":id")
 	id,_:= strconv.ParseInt(goodid,10,64)
 	name:=this.GetString("name")
-	goodprice:=this.GetString("price")
-	price,_:= strconv.ParseFloat(goodprice,64)
+	price,err1:= this.GetFloat("price")
+	if err1!=nil {
+		JsonResponse["msg"]="输入格式不正确"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+	}
 	describe:=this.GetString("describe")
-	photo:=this.GetString("photo")
-	goodquantity:=this.GetString("quantity")
-	quantity,_:= strconv.ParseInt(goodquantity,10,64)
-	JsonResponse:=make(map[string]interface{})
-	JsonResponse["status"]=0
+	quantity,err2:= this.GetInt64("quantity")
+	if err2!=nil {
+		JsonResponse["msg"]="输入格式不正确"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+	}
+
+	photo,_,err:=this.GetFile("photo")
+	if err!=nil {
+		JsonResponse["status"] = 0
+		JsonResponse["msg"] = "图片上传失败"
+		this.Data["json"] = JsonResponse
+		this.ServeJSON()
+		return
+	}
+	defer photo.Close()
 	orm:=orm.NewOrm()
 	good:=models.Goods{Id:id}
-	err:=orm.Read(&good)
+	err=orm.Read(&good)
 	if err!=nil {
 		JsonResponse["msg"]="商品不存在"
 		this.Data["json"]=JsonResponse
 		this.ServeJSON()
 		return
 	}
+	if good.Userid!=userid {
+		JsonResponse["msg"]="没有权限编辑该商品"
+		this.Data["json"]=JsonResponse
+		this.ServeJSON()
+		return 
+	}
+	//删除旧照片
+	filename:=strconv.FormatInt(userid,10)+"_"+goodid+"_"+good.Name+".jpg"
+	filename=path.Join("static/photo", filename)
+	os.Remove(filename)
 	//更新商品信息
+	filename=strconv.FormatInt(userid,10)+"_"+goodid+"_"+name+".jpg"
+	filename=path.Join("static/photo", filename)
 	good.Name=name
 	good.Price=price
 	good.Describe=describe
-	good.Photo=photo
+	good.Photo=filename
 	good.Quantity=quantity
 	_,err=orm.Update(&good)
 	if err!=nil {
 		JsonResponse["msg"]="商品不存在"
 	} else {
 		JsonResponse["msg"]="商品更新成功"
+		this.SaveToFile("photo",filename)
 	}
 	this.Data["json"]=JsonResponse
 	this.ServeJSON()
@@ -466,7 +587,7 @@ func (this *EditController) Delete() {
 	1、status:0/1 0表示删除失败 1表示删除成功
 	2、msg：表示失败或成功的消息
 	************************************************/
-	beego.Info("delete")
+	userid:=this.Ctx.Input.GetData("user").(int64)
 	goodid:=this.Ctx.Input.Param(":id")
 	id,_:= strconv.ParseInt(goodid,10,64)
 	JsonResponse:=make(map[string]interface{})
@@ -477,11 +598,20 @@ func (this *EditController) Delete() {
 		JsonResponse["status"]=0
 		JsonResponse["msg"]="该商品不存在"
 	} else {
+		if good.Userid!=userid {
+			JsonResponse["msg"]="没有权限删除该商品"
+			this.Data["json"]=JsonResponse
+			this.ServeJSON()
+			return 
+		}
+		filename:=strconv.Itoa(int(userid))+"_"+goodid+"_"+good.Name+".jpg"
+		photopath:=path.Join("static/photo",filename)
 		_,err=orm.Delete(&good)
 		if err!=nil {
 			JsonResponse["status"]=0
 			JsonResponse["msg"]="商品删除失败"
 		} else {
+			os.Remove(photopath)
 			JsonResponse["status"]=1
 			JsonResponse["msg"]="商品删除成功"
 		}
