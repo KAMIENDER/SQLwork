@@ -227,6 +227,7 @@ func (this *RegisterController) Register(){
 			if res!=nil {
 				beego.Error("邮件发送失败",res)
 				msg="邮件发送失败"
+				orm.Delete(&newuser)
 			} else {
 				msg="邮件发送成功"
 				status=1
