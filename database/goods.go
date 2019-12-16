@@ -57,25 +57,78 @@ func (this *GetLabelGoodsController) GetLabelGoods() {
 	返回给前端的数据：用JsonResponse封装
 	1、json数组为查找成功的所有goods的相关信息
 	*********************************************/
+	beego.Info("Get Label Goods")
 	label := this.GetString("kind")
 	num, _ := this.GetInt("num")
 	o := orm.NewOrm()
-	tarlabel := []*models.Label{}
-	o.QueryTable("label").Filter("kind", label).All(&tarlabel)
-
 	var out []models.Goods
-	t := 0
-	for _,kind := range tarlabel {
-		beego.Info(kind.Kind)
-		if t >= num {
-			break
+	if label=="Household" {
+		tarlabel := []*models.Household{}
+		o.QueryTable(label).Limit(num).All(&tarlabel)
+		t := 0
+		for _,good := range tarlabel {
+			if t >= num {
+				break
+			}
+			t = t + 1
+			temp:=models.Goods{}
+			o.QueryTable("goods").Filter("id", good.Goodsid).One(&temp)
+			out = append(out, temp)
 		}
-		t = t + 1
-		temp:=models.Goods{}
-		o.QueryTable("goods").Filter("id", kind.Goodsid).One(&temp)
-		beego.Info(temp.Name)
-		out = append(out, temp)
+	} else if label=="Digital" {
+		tarlabel := []*models.Digital{}
+		o.QueryTable(label).Limit(num).All(&tarlabel)
+		t := 0
+		for _,good := range tarlabel {
+			if t >= num {
+				break
+			}
+			t = t + 1
+			temp:=models.Goods{}
+			o.QueryTable("goods").Filter("id", good.Goodsid).One(&temp)
+			out = append(out, temp)
+		}
+	} else if label=="Study" {
+		tarlabel := []*models.Study{}
+		o.QueryTable(label).Limit(num).All(&tarlabel)
+		t := 0
+		for _,good := range tarlabel {
+			if t >= num {
+				break
+			}
+			t = t + 1
+			temp:=models.Goods{}
+			o.QueryTable("goods").Filter("id", good.Goodsid).One(&temp)
+			out = append(out, temp)
+		}
+	} else if label=="Life" {
+		tarlabel := []*models.Life{}
+		o.QueryTable(label).Limit(num).All(&tarlabel)
+		t := 0
+		for _,good := range tarlabel {
+			if t >= num {
+				break
+			}
+			t = t + 1
+			temp:=models.Goods{}
+			o.QueryTable("goods").Filter("id", good.Goodsid).One(&temp)
+			out = append(out, temp)
+		}
+	} else {
+		tarlabel := []*models.Other{}
+		o.QueryTable(label).Limit(num).All(&tarlabel)
+		t := 0
+		for _,good := range tarlabel {
+			if t >= num {
+				break
+			}
+			t = t + 1
+			temp:=models.Goods{}
+			o.QueryTable("goods").Filter("id", good.Goodsid).One(&temp)
+			out = append(out, temp)
+		}
 	}
+	
 
 	this.Data["json"] = out
 
@@ -143,9 +196,28 @@ func (this *PostGoodsController) PostGoods() {
 	toinsert.Photo = path.Join("static/photo", filename)
 	this.SaveToFile("photo", toinsert.Photo)
 	o.Update(&toinsert)
+	beego.Info(label)
 
-	GoodLabel:=models.Label{Kind:label,Goodsid:idd}
-	o.Insert(&GoodLabel)
+	if label=="Household" {
+		GoodLabel:=models.Household{Goodsid:idd}
+		o.Insert(&GoodLabel)
+	} else if label=="Digital" {
+		GoodLabel:=models.Digital{Goodsid:idd}
+		o.Insert(&GoodLabel)
+	} else if label=="Study" {
+		GoodLabel:=models.Study{Goodsid:idd}
+		_,err:=o.Insert(&GoodLabel)
+		if err!=nil {
+			beego.Info(err.Error())
+		}
+	} else if label=="Life" {
+		GoodLabel:=models.Life{Goodsid:idd}
+		o.Insert(&GoodLabel)
+	} else {
+		GoodLabel:=models.Other{Goodsid:idd}
+		o.Insert(&GoodLabel)
+	}
+	
 
 	JsonResponse["status"] = 1
 	JsonResponse["msg"] = "ok"
