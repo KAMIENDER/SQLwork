@@ -208,7 +208,7 @@ func (user *User) BatchInsert(client *DBClient, idSet, returnIds bool) ([]int64,
 */
 
 type Goods struct {
-	Name string `column:"name"`
+	Name	 string	 `column:"name"`
 	Describe string  `column:"describe"` //
 	Id       int64   `column:"id"`       //
 	Photo    string  `column:"photo"`    //
@@ -1006,12 +1006,41 @@ func (messages *Messages) BatchInsert(client *DBClient, idSet, returnIds bool) (
 	return result, nil
 }
 */
+
+type Household struct {
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`
+}
+
+type Life struct {
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`
+}
+
+type Study struct {
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`
+}
+
+type Digital struct {
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`
+}
+
+type Other struct {
+	Goodsid int64  `column:"goodsid"` //
+	Id      int64  `column:"id"`
+}
+
 // The generated tabs:  user goods communications label messages
 
 func init() {
+	orm.RegisterModel(new(Household))
+	orm.RegisterModel(new(Life))
+	orm.RegisterModel(new(Study))
+	orm.RegisterModel(new(Digital))
+	orm.RegisterModel(new(Other))
 	orm.RegisterModel(new(User))
 	orm.RegisterModel(new(Goods))
-	orm.RegisterModel(new(Label))
 	orm.RegisterModel(new(Communications))
-	orm.RegisterModel(new(Messages))
 }
